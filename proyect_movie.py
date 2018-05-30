@@ -10,7 +10,7 @@ class TB_Pelicula:
         self.year = year
         self.puntuacion = puntuacion
         self.lista_actores = []
-   
+
 class TB_Persona:
     def __init__(self, id_persona, nombre, apellido, fecha_nacimiento, sexo, altura):
         self.id_persona = id_persona
@@ -40,12 +40,27 @@ class TB_Genero:
         self.id_genero = id_genero
         self.nombre = nombre
 
-
 def nueva_pelicula():
     pelicula_nueva = TB_Pelicula(input("Introducir Id de pelicula: "), input("Introducir Nombre de pelicula: "), int(input("Introducir Año de pelicula: ")), int(input("Introducir Puntuacion de pelicula: ")))
     c.execute("INSERT INTO TB_Pelicula Values('%s', '%s', %i, %i)" % (pelicula_nueva.id_pelicula, pelicula_nueva.nombre, pelicula_nueva.year, pelicula_nueva.puntuacion))
-    conn.commit()
-
+    cmenu = "S"
+    while cmenu == "S":
+        id_director = input("Introducir Id de Director: ")
+        c.execute("INSERT INTO TB_PeliculaDirector Values('%s', '%s')"%(pelicula_nueva.id_pelicula, id_director))
+        cmenu=input("Introducir otro Director? S o N:")
+        conn.commit()
+    cmenu = "S"
+    while cmenu == "S":
+        id_productor = input("Introducir Id Productor")
+        c.execute("INSERT INTO TB_PeliculaProductor Values('%s', '%s')"%(pelicula_nueva.id_pelicula, id_productor))
+        cmenu=input("Introducir otro Productor? S o N:")
+        conn.commit()
+    cmenu = "S"
+    while cmenu == "S":
+        id_actor = input("Introducir Id Actor")
+        c.execute("INSERT INTO TB_PeliculaActor Values('%s', '%s')"%(pelicula_nueva.id_pelicula, id_actor))
+        cmenu=input("Introducir otro Actor? S o N:")
+        conn.commit()
 
 def leer_pelicula():
     cmenu=0
@@ -75,7 +90,6 @@ def leer_pelicula():
                 print(result)                
         else:
             operacion[cmenu]()
-
 
 def actualizar_pelicula():
     cmenu=0
@@ -114,247 +128,162 @@ def eliminar_pelicula():
     c.execute("DELETE FROM TB_Pelicula WHERE id_pelicula='%s'" % (id_p))
     print("Se ah eliminado la pelicula")
 
+def comprobar_persona(id_persona):
+    c.execute("SELECT * FROM TB_Persona WHERE id_persona = '%s'" % (id_persona))
+    result = str(c.fetchall())
+    conn.commit()
+    return result
 
+def comprobar_id_tb(nombre_tabla, nombre_id, id_tabla):
+    c.execute("SELECT * FROM TB_%s WHERE id_%s = '%s'" % (nombre_tabla, nombre_id, id_tabla))
+    result = str(c.fetchall())
+    conn.commit()
+    return result
+
+def nueva_persona(persona_nueva):
+    c.execute("INSERT INTO TB_Persona Values('%s', '%s', '%s', '%s', '%s', %i)" % (persona_nueva.id_persona, persona_nueva.nombre, persona_nueva.apellido, persona_nueva.fecha_nacimiento, persona_nueva.sexo, persona_nueva.altura))
+    conn.commit()    
+
+def leer_persona(nombre_tabla, nombre_id):
+    cmenu=0
+    operacion = {1: 'id_%s' %(nombre_id), 2 : 'nombre', 3: 'apellido', 4: 'edad', 5 : 'sexo', 6 : 'altura', 7: salir_menu}
+    while cmenu != 7:
+        print("Menu de Busqueda de %s" %(nombre_tabla))
+        print("¿Que desea buscar?")
+        print("""
+        1. Id de %s
+        2. Nombre
+        3. Apellido
+        4. Edad
+        5. Sexo
+        6. Altura
+        7. Salir"""%(nombre_tabla))
+        cmenu = int(input())
+        if cmenu != 7:
+            if cmenu != 6:             
+                busqueda = input("Introducir %s: " % (operacion[cmenu]))
+                c.execute("SELECT * FROM TB_Persona INNER JOIN TB_%s ON TB_Persona.id_persona = TB_%s.id_persona WHERE %s='%s'" %(nombre_tabla, nombre_tabla,operacion[cmenu], busqueda) )
+                result = c.fetchall()
+                conn.commit()
+                print(result)
+            else:
+                busqueda = int(input("Introducir %s: " % (operacion[cmenu])))
+                c.execute("SELECT * FROM TB_Persona INNER JOIN TB_%s ON TB_Persona.id_persona = TB_%s.id_persona WHERE %s=%i" %(nombre_tabla, nombre_tabla,operacion[cmenu], busqueda) )
+                result = c.fetchall()
+                conn.commit()
+                print(result)                
+        else:
+            operacion[cmenu]()
+
+def actualizar_persona(nombre_tabla, nombre_id):
+    cmenu=0
+    operacion = {1 : 'nombre', 2: 'apellido', 3: 'altura', 4 : salir_menu}
+    while cmenu != 4:
+        print("Menu de Actualizar de %s" % (nombre_tabla))
+        print("¿Que desea actualizar?")
+        print("""
+        1. Nombre
+        2. Apellido
+        3. Altura
+        4. Salir""")
+        cmenu = int(input())
+        if cmenu != 4:
+            id_d = input("Introducir el id del %s: " % (nombre_tabla))
+            if cmenu != 3 :             
+                cambio = input("Introducir nuevo %s: " % (operacion[cmenu]))
+                c.execute("UPDATE TB_Persona  set %s = '%s' WHERE EXISTS ( SELECT * FROM TB_%s WHERE TB_Persona.id_persona = TB_%s.id_persona AND TB_%s.id_%s = '%s')" %(operacion[cmenu], cambio, nombre_tabla, nombre_tabla, nombre_tabla, nombre_id, id_d))
+                c.execute("SELECT * FROM TB_Persona INNER JOIN TB_%s ON TB_Persona.id_persona = TB_%s.id_persona WHERE %s='%s'" %(nombre_tabla, nombre_tabla, operacion[cmenu], cambio) )
+                result = c.fetchall()
+                conn.commit()
+                print(result)
+            else:
+                cambio = int(input("Introducir %s: " % (operacion[cmenu])))
+                c.execute("UPDATE TB_Persona  set %s = %i WHERE EXISTS ( SELECT * FROM TB_%s WHERE TB_Persona.id_persona= TB_%s.id_persona AND TB_%s.id_%s = '%s')" %(operacion[cmenu], cambio, nombre_tabla, nombre_tabla, nombre_tabla, nombre_id, id_d))
+                c.execute("SELECT * FROM TB_Persona INNER JOIN TB_%s ON TB_Persona.id_persona = TB_%s.id_persona WHERE %s=%i" %(nombre_tabla, nombre_tabla,operacion[cmenu], cambio) )
+                result = c.fetchall()
+                conn.commit()
+                print(result)                
+        else:
+            operacion[cmenu]()
+
+def eliminar_persona(nombre_tabla, nombre_id):
+    print("Eliminar un %s" % (nombre_tabla))
+    id_d = input("Introducir el id de %s para eliminar: " % (nombre_tabla))
+    c.execute("SELECT id_persona FROM TB_%s WHERE id_%s = '%s'" %(nombre_tabla, nombre_id, id_d))
+    id_p = str(c.fetchall())
+    c.execute("DELETE FROM TB_%s WHERE id_%s='%s'" % (nombre_tabla, nombre_id, id_d))
+    print("Se ah eliminado %s" % (nombre_tabla))    
 
 def nuevo_director():
-    director_nuevo = TB_Director(input("Introducir Id de persona: "), input("Introducir Nombre de persona: "), input("Introducir Apellido de apellido: "),datetime.date(int(input("Introducir año: ")), int(input("Introducir Mes: ")), int(input("Introducir Dia: "))), input("Introducir sexo F o M: "), int(input("Introducir Altura en cm: ")), input("Introducir ID del director: "))
-    c.execute("INSERT INTO TB_Persona Values('%s', '%s', '%s', '%s', '%s', %i)" % (director_nuevo.id_persona, director_nuevo.nombre, director_nuevo.apellido, director_nuevo.fecha_nacimiento, director_nuevo.sexo, director_nuevo.altura))
-    c.execute("INSERT INTO TB_Director Values('%s', '%s')" % (director_nuevo.id_director, director_nuevo.id_persona))
-    conn.commit()
+    id_persona = input("Introducir Id de persona: ")
+    if comprobar_persona(id_persona)[1] == ']':
+        director_nuevo = TB_Director(id_persona, input("Introducir Nombre de persona: "), input("Introducir Apellido de apellido: "),datetime.date(int(input("Introducir año: ")), int(input("Introducir Mes: ")), int(input("Introducir Dia: "))), input("Introducir sexo F o M: "), int(input("Introducir Altura en cm: ")), input("Introducir ID del director: "))
+        nueva_persona(director_nuevo)
+        c.execute("INSERT INTO TB_Director Values('%s', '%s')" % (director_nuevo.id_director, director_nuevo.id_persona))
+        conn.commit()
+    else:
+        print("Esa persona ya existe")
+        director_nuevo_id_director = input("Introducir Id del Director ")
+        c.execute("INSERT INTO TB_Director Values('%s', '%s')" % (director_nuevo_id_director, id_persona))
+        conn.commit()
 
 def leer_director():
-    cmenu=0
-    operacion = {1: 'id_director', 2 : 'nombre', 3: 'apellido', 4: 'edad', 5 : 'sexo', 6 : 'altura', 7: salir_menu}
-    while cmenu != 7:
-        print("Menu de Busqueda de Director")
-        print("¿Que desea buscar?")
-        print("""
-        1. Id de Director
-        2. Nombre
-        3. Apellido
-        4. Edad
-        5. Sexo
-        6. Altura
-        7. Salir""")
-        cmenu = int(input())
-        if cmenu != 7:
-            if cmenu != 6:             
-                busqueda = input("Introducir %s: " % (operacion[cmenu]))
-                c.execute("SELECT * FROM TB_Persona INNER JOIN TB_Director ON TB_Persona.id_persona = TB_Director.id_persona WHERE %s='%s'" %(operacion[cmenu], busqueda) )
-                result = c.fetchall()
-                conn.commit()
-                print(result)
-            else:
-                busqueda = int(input("Introducir %s: " % (operacion[cmenu])))
-                c.execute("SELECT * FROM TB_Persona INNER JOIN TB_Director ON TB_Persona.id_persona = TB_Director.id_persona WHERE %s=%i" %(operacion[cmenu], busqueda) )
-                result = c.fetchall()
-                conn.commit()
-                print(result)                
-        else:
-            operacion[cmenu]()
-    
+    leer_persona("Director", "director")
 
 def actualizar_director():
-    cmenu=0
-    operacion = {1 : 'nombre', 2: 'apellido', 3: 'altura', 4 : salir_menu}
-    while cmenu != 4:
-        print("Menu de Actualizar de Director")
-        print("¿Que desea actualizar?")
-        print("""
-        1. Nombre
-        2. Apellido
-        3. Altura
-        4. Salir""")
-        cmenu = int(input())
-        if cmenu != 4:
-            id_d = input("Introducir el id del Director: ")
-            if cmenu != 3 :             
-                cambio = input("Introducir nuevo %s: " % (operacion[cmenu]))
-                c.execute("UPDATE TB_Persona  set %s = '%s' WHERE EXISTS ( SELECT * FROM TB_Director WHERE TB_Persona.id_persona = TB_Director.id_persona AND TB_Director.id_director = '%s')" %(operacion[cmenu], cambio, id_d))
-                c.execute("SELECT * FROM TB_Persona INNER JOIN TB_Director ON TB_Persona.id_persona = TB_Director.id_persona WHERE %s='%s'" %(operacion[cmenu], cambio) )
-                result = c.fetchall()
-                conn.commit()
-                print(result)
-            else:
-                cambio = int(input("Introducir %s: " % (operacion[cmenu])))
-                c.execute("UPDATE TB_Persona  set %s = %i WHERE EXISTS ( SELECT * FROM TB_Director WHERE TB_Persona.id_persona= TB_Director.id_persona AND TB_Director.id_director = '%s')" %(operacion[cmenu], cambio, id_d))
-                c.execute("SELECT * FROM TB_Persona INNER JOIN TB_Director ON TB_Persona.id_persona = TB_Director.id_persona WHERE %s=%i" %(operacion[cmenu], cambio) )
-                result = c.fetchall()
-                conn.commit()
-                print(result)                
-        else:
-            operacion[cmenu]()
+    actualizar_persona("Director", "director")
 
 def eliminar_director():
-    print("Eliminar una Director")
-    id_d = input("Introducir el id de Director para eliminar: ")
-    c.execute("SELECT id_persona FROM TB_Director WHERE id_director = '%s'" %(id_d))
-    id_p = c.fetchall()
-    c.execute("DELETE FROM TB_Director WHERE id_director = '%s'" % (id_d))
-    c.execute("DELETE FROM TB_Persona WHERE id_persona = '%s'" % (id_p))
-    print("Se ah eliminado Director")
+    eliminar_persona("Director", "director")
 
 def nuevo_productor():
-    productor_nuevo = TB_Productor(input("Introducir Id de persona: "), input("Introducir Nombre de persona: "), input("Introducir Apellido de apellido: "),datetime.date(int(input("Introducir año: ")), int(input("Introducir Mes: ")), int(input("Introducir Dia: "))), input("Introducir sexo F o M: "), int(input("Introducir Altura en cm: ")), input("Introducir ID del Productor: "))
-    c.execute("INSERT INTO TB_Persona Values('%s', '%s', '%s', '%s', '%s', %i)" % (productor_nuevo.id_persona, productor_nuevo.nombre, productor_nuevo.apellido, productor_nuevo.fecha_nacimiento, productor_nuevo.sexo, productor_nuevo.altura))
-    c.execute("INSERT INTO TB_Productor Values('%s', '%s')" % (productor_nuevo.id_productor, productor_nuevo.id_persona))
-    conn.commit()
+    id_persona = input("Introducir Id de persona: ")
+    if comprobar_persona(id_persona)[1] == ']':
+        productor_nuevo = TB_Productor(id_persona, input("Introducir Nombre de persona: "), input("Introducir Apellido de apellido: "),datetime.date(int(input("Introducir año: ")), int(input("Introducir Mes: ")), int(input("Introducir Dia: "))), input("Introducir sexo F o M: "), int(input("Introducir Altura en cm: ")), input("Introducir ID del Productor: "))
+        nueva_persona(productor_nuevo)
+        c.execute("INSERT INTO TB_Productor Values('%s', '%s')" % (productor_nuevo.id_productor, productor_nuevo.id_persona))
+        conn.commit()
+    else:
+        print("Esa persona ya existe")
+        productor_nuevo_id_productor = input("Introducir Id del Productor: ") 
+        c.execute("INSERT INTO TB_Productor Values('%s', '%s')" % (productor_nuevo_id_productor, id_persona))
+        conn.commit()
 
 def leer_productor():
-    cmenu=0
-    operacion = {1: 'id_productor', 2 : 'nombre', 3: 'apellido', 4: 'edad', 5 : 'sexo', 6 : 'altura', 7: salir_menu}
-    while cmenu != 7:
-        print("Menu de Busqueda de Productor")
-        print("¿Que desea buscar?")
-        print("""
-        1. Id de Productor
-        2. Nombre
-        3. Apellido
-        4. Edad
-        5. Sexo
-        6. Altura
-        7. Salir""")
-        cmenu = int(input())
-        if cmenu != 7:
-            if cmenu != 6:             
-                busqueda = input("Introducir %s: " % (operacion[cmenu]))
-                c.execute("SELECT * FROM TB_Persona INNER JOIN TB_Productor ON TB_Persona.id_persona = TB_Productor.id_persona WHERE %s='%s'" %(operacion[cmenu], busqueda) )
-                result = c.fetchall()
-                conn.commit()
-                print(result)
-            else:
-                busqueda = int(input("Introducir %s: " % (operacion[cmenu])))
-                c.execute("SELECT * FROM TB_Persona INNER JOIN TB_Productor ON TB_Persona.id_persona = TB_Productor.id_persona WHERE %s=%i" %(operacion[cmenu], busqueda) )
-                result = c.fetchall()
-                conn.commit()
-                print(result)                
-        else:
-            operacion[cmenu]()
+    leer_persona("Productor", "productor")
     
-
 def actualizar_productor():
-    cmenu=0
-    operacion = {1 : 'nombre', 2: 'apellido', 3: 'altura', 4 : salir_menu}
-    while cmenu != 4:
-        print("Menu de Actualizar de Productor")
-        print("¿Que desea actualizar?")
-        print("""
-        1. Nombre
-        2. Apellido
-        3. Altura
-        4. Salir""")
-        cmenu = int(input())
-        if cmenu != 4:
-            id_pd = input("Introducir el id del Productor: ")
-            if cmenu != 3 :             
-                cambio = input("Introducir nuevo %s: " % (operacion[cmenu]))
-                c.execute("UPDATE TB_Persona  set %s = '%s' WHERE EXISTS ( SELECT * FROM TB_Productor WHERE TB_Persona.id_persona = TB_Productor.id_persona AND TB_Productor.id_director = '%s')" %(operacion[cmenu], cambio, id_pd))
-                c.execute("SELECT * FROM TB_Persona INNER JOIN TB_Productor ON TB_Persona.id_persona = TB_Productor.id_persona WHERE %s='%s'" %(operacion[cmenu], cambio) )
-                result = c.fetchall()
-                conn.commit()
-                print(result)
-            else:
-                cambio = int(input("Introducir %s: " % (operacion[cmenu])))
-                c.execute("UPDATE TB_Persona  set %s = %i WHERE EXISTS ( SELECT * FROM TB_Productor WHERE TB_Persona.id_persona = TB_Productor.id_persona AND TB_Productor.id_director = '%s')" %(operacion[cmenu], cambio, id_pd))
-                c.execute("SELECT * FROM TB_Persona INNER JOIN TB_Productor ON TB_Persona.id_persona = TB_Productor.id_persona WHERE %s=%i" %(operacion[cmenu], cambio) )
-                result = c.fetchall()
-                conn.commit()
-                print(result)                
-        else:
-            operacion[cmenu]()
+    actualizar_persona("Productor", "productor")
 
 def eliminar_productor():
-    print("Eliminar un Productor")
-    id_pd = input("Introducir el id de Productor para eliminar: ")
-    c.execute("SELECT id_persona FROM TB_Productor WHERE id_productor = '%s'" %(id_pd))
-    id_p = c.fetchall()
-    c.execute("DELETE FROM TB_Persona WHERE id_persona='%s'" % (id_p))
-    c.execute("DELETE FROM TB_Productor WHERE id_productor='%s'" % (id_pd))
-    print("Se ah eliminado Productor")
+    eliminar_persona("Productor", "productor")
 
 def nuevo_actor():
-    actor_nuevo = TB_Actor(input("Introducir Id de persona: "), input("Introducir Nombre de persona: "), input("Introducir Apellido de apellido: "),datetime.date(int(input("Introducir año: ")), int(input("Introducir Mes: ")), int(input("Introducir Dia: "))), input("Introducir sexo F o M: "), int(input("Introducir Altura en cm: ")), input("Introducir ID del Actor: "))
-    c.execute("INSERT INTO TB_Persona Values('%s', '%s', '%s', '%s', '%s', %i)" % (actor_nuevo.id_persona, actor_nuevo.nombre, actor_nuevo.apellido, actor_nuevo.fecha_nacimiento, actor_nuevo.sexo, actor_nuevo.altura))
-    c.execute("INSERT INTO TB_Actor Values('%s', '%s')" % (actor_nuevo.id_actor, actor_nuevo.id_persona))
-    conn.commit()
+    id_persona = input("Introducir Id de persona: ")
+    if comprobar_persona(id_persona)[1] == ']':
+        actor_nuevo = TB_Actor(id_persona, input("Introducir Nombre de persona: "), input("Introducir Apellido de apellido: "),datetime.date(int(input("Introducir año: ")), int(input("Introducir Mes: ")), int(input("Introducir Dia: "))), input("Introducir sexo F o M: "), int(input("Introducir Altura en cm: ")), input("Introducir ID del Actor: "))
+        nueva_persona(actor_nuevo)
+        c.execute("INSERT INTO TB_Actor Values('%s', '%s')" % (actor_nuevo.id_actor, actor_nuevo.id_persona))
+        conn.commit()
+    else:
+        print("Esa persona ya existe")
+        actor_nuevo_id_actor = input("Introducir Id del Actor: ") 
+        c.execute("INSERT INTO TB_Actor Values('%s', '%s')" % (actor_nuevo_id_actor, id_persona))
+        conn.commit()
 
 def leer_actor():
-    cmenu=0
-    operacion = {1: 'id_actor', 2 : 'nombre', 3: 'apellido', 4: 'edad', 5 : 'sexo', 6 : 'altura', 7: salir_menu}
-    while cmenu != 7:
-        print("Menu de Busqueda de Actor")
-        print("¿Que desea buscar?")
-        print("""
-        1. Id de Actor
-        2. Nombre
-        3. Apellido
-        4. Edad
-        5. Sexo
-        6. Altura
-        7. Salir""")
-        cmenu = int(input())
-        if cmenu != 7:
-            if cmenu != 6:             
-                busqueda = input("Introducir %s: " % (operacion[cmenu]))
-                c.execute("SELECT * FROM TB_Persona INNER JOIN TB_Actor ON TB_Persona.id_persona = TB_Actor.id_persona WHERE %s='%s'" %(operacion[cmenu], busqueda) )
-                result = c.fetchall()
-                conn.commit()
-                print(result)
-            else:
-                busqueda = int(input("Introducir %s: " % (operacion[cmenu])))
-                c.execute("SELECT * FROM TB_Persona INNER JOIN TB_Actor ON TB_Persona.id_persona = TB_Actor.id_persona WHERE %s=%i" %(operacion[cmenu], busqueda) )
-                result = c.fetchall()
-                conn.commit()
-                print(result)                
-        else:
-            operacion[cmenu]()
+    leer_persona("Actor", "actor")
     
-
 def actualizar_actor():
-    cmenu=0
-    operacion = {1 : 'nombre', 2: 'apellido', 3: 'altura', 4 : salir_menu}
-    while cmenu != 4:
-        print("Menu de Actualizar de Actor")
-        print("¿Que desea actualizar?")
-        print("""
-        1. Nombre
-        2. Apellido
-        3. Altura
-        4. Salir""")
-        cmenu = int(input())
-        if cmenu != 4:
-            id_ac = input("Introducir el id del Actor: ")
-            if cmenu != 3 :             
-                cambio = input("Introducir nuevo %s: " % (operacion[cmenu]))
-                c.execute("UPDATE TB_Persona  set %s = '%s' WHERE EXISTS ( SELECT * FROM TB_Actor WHERE TB_Persona.id_persona = TB_Actor.id_persona AND TB_Actor.id_director = '%s')" %(operacion[cmenu], cambio, id_ac))
-                c.execute("SELECT * FROM TB_Persona INNER JOIN TB_Actor ON TB_Persona.id_persona = TB_Actor.id_persona WHERE %s='%s'" %(operacion[cmenu], cambio) )
-                result = c.fetchall()
-                conn.commit()
-                print(result)
-            else:
-                cambio = int(input("Introducir %s: " % (operacion[cmenu])))
-                c.execute("UPDATE TB_Persona  set %s = %i WHERE EXISTS ( SELECT * FROM TB_Actor WHERE TB_Persona.id_persona = TB_Actor.id_persona AND TB_Actor.id_director = '%s')" %(operacion[cmenu], cambio, id_ac))
-                c.execute("SELECT * FROM TB_Persona INNER JOIN TB_Actor ON TB_Persona.id_persona = TB_Actor.id_persona WHERE %s=%i" %(operacion[cmenu], cambio) )
-                result = c.fetchall()
-                conn.commit()
-                print(result)                
-        else:
-            operacion[cmenu]()
+    actualizar_persona("Actor", "actor")
 
 def eliminar_actor():
-    print("Eliminar un Actor")
-    id_ac = input("Introducir el id de Actor para eliminar: ")
-    c.execute("SELECT id_persona FROM TB_Actor WHERE id_Actor = '%s'" %(id_ac))
-    id_p = c.fetchall()
-    c.execute("DELETE FROM TB_Persona WHERE id_persona='%s'" % (id_p))
-    c.execute("DELETE FROM TB_Actor WHERE id_actor='%s'" % (id_ac))
-    print("Se ah eliminado Actor")
+    eliminar_persona("Actor", "actor")
 
 def nuevo_genero():
     genero_nuevo = TB_Genero(input("Introducir Id de Genero: "), input("Introducir Nombre de Genero: "))
     c.execute("INSERT INTO TB_Genero Values('%s', '%s')" % (genero_nuevo.id_genero, genero_nuevo.nombre))
     conn.commit()
-
 
 def leer_genero():
     cmenu=0
@@ -375,7 +304,6 @@ def leer_genero():
             print(result)       
         else:
             operacion[cmenu]()
-
 
 def actualizar_genero():
     cmenu=0
@@ -447,7 +375,6 @@ def genero_menu():
         cmenu = int(input())
         operacion[cmenu]()  
 
-
 def crud_menu():
     print("¿Que desea realizar?")
     print("""
@@ -459,8 +386,8 @@ def crud_menu():
 
 def menu():
     cmenu= 0
-    operacion = {1: pelicula_menu, 2 : director_menu, 3: productor_menu, 4: actor_menu, 5 : salir_menu}
-    while cmenu != 5:
+    operacion = {1: pelicula_menu, 2 : director_menu, 3: productor_menu, 4: actor_menu, 5: genero_menu, 6 : salir_menu}
+    while cmenu != 6:
         print("Bienvenido al menu")
         print("¿Que desea realizar?")
         print("""
@@ -468,9 +395,9 @@ def menu():
         2. Director
         3. Productor
         4. Actor
-        5. Salir""")
+        5. Genero
+        6. Salir""")
         cmenu = int(input())
         operacion[cmenu]()
-
 
 menu()
